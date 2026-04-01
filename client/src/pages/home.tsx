@@ -4,7 +4,7 @@ import type { Prospect } from "@shared/schema";
 import { STATUSES } from "@shared/schema";
 import { ProspectCard } from "@/components/prospect-card";
 import { AddProspectForm } from "@/components/add-prospect-form";
-import { Briefcase, Plus } from "lucide-react";
+import { Briefcase, Plus, TrendingUp, Zap, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -34,6 +34,52 @@ const interestOptions: { value: InterestFilter; label: string }[] = [
   { value: "Medium", label: "👍 Medium" },
   { value: "Low", label: "🤷 Low" },
 ];
+
+function computeStats(prospects: Prospect[]) {
+  return {
+    total: prospects.length,
+    active: prospects.filter((p) => !["Rejected", "Withdrawn"].includes(p.status)).length,
+    advanced: prospects.filter((p) => ["Interviewing", "Offer"].includes(p.status)).length,
+    highInterest: prospects.filter((p) => p.interestLevel === "High").length,
+  };
+}
+
+function StatCard({
+  label,
+  value,
+  icon,
+  accent,
+  testId,
+  isLoading,
+}: {
+  label: string;
+  value: number;
+  icon: React.ReactNode;
+  accent: string;
+  testId: string;
+  isLoading: boolean;
+}) {
+  return (
+    <div
+      className="flex items-center gap-3 px-4 py-2.5 bg-card border border-border/60 rounded-lg min-w-[130px]"
+      data-testid={testId}
+    >
+      <div className={`flex items-center justify-center w-8 h-8 rounded-md ${accent}`}>
+        {icon}
+      </div>
+      <div>
+        {isLoading ? (
+          <Skeleton className="h-5 w-8 mb-0.5" />
+        ) : (
+          <p className="text-xl font-bold leading-tight" data-testid={`${testId}-value`}>
+            {value}
+          </p>
+        )}
+        <p className="text-[11px] text-muted-foreground leading-tight whitespace-nowrap">{label}</p>
+      </div>
+    </div>
+  );
+}
 
 function KanbanColumn({
   status,
@@ -121,15 +167,16 @@ export default function Home() {
     queryKey: ["/api/prospects"],
   });
 
+  const allProspects = prospects ?? [];
+  const stats = computeStats(allProspects);
+
   const groupedByStatus = STATUSES.reduce(
     (acc, status) => {
-      acc[status] = (prospects ?? []).filter((p) => p.status === status);
+      acc[status] = allProspects.filter((p) => p.status === status);
       return acc;
     },
     {} as Record<string, Prospect[]>,
   );
-
-  const totalCount = prospects?.length ?? 0;
 
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -145,7 +192,7 @@ export default function Home() {
                   JobTrackr
                 </h1>
                 <p className="text-xs text-muted-foreground" data-testid="text-prospect-count">
-                  {totalCount} prospect{totalCount !== 1 ? "s" : ""} tracked
+                  {stats.total} prospect{stats.total !== 1 ? "s" : ""} tracked
                 </p>
               </div>
             </div>
@@ -166,6 +213,43 @@ export default function Home() {
           </div>
         </div>
       </header>
+
+      <div className="shrink-0 border-b bg-muted/20 px-4 sm:px-6 py-3" data-testid="stats-bar">
+        <div className="flex gap-3 overflow-x-auto pb-0.5">
+          <StatCard
+            label="Total Jobs"
+            value={stats.total}
+            icon={<Briefcase className="w-4 h-4 text-primary" />}
+            accent="bg-primary/10"
+            testId="stat-total"
+            isLoading={isLoading}
+          />
+          <StatCard
+            label="Active Applications"
+            value={stats.active}
+            icon={<TrendingUp className="w-4 h-4 text-blue-500" />}
+            accent="bg-blue-500/10"
+            testId="stat-active"
+            isLoading={isLoading}
+          />
+          <StatCard
+            label="Advanced Stage"
+            value={stats.advanced}
+            icon={<Zap className="w-4 h-4 text-amber-500" />}
+            accent="bg-amber-500/10"
+            testId="stat-advanced"
+            isLoading={isLoading}
+          />
+          <StatCard
+            label="High Interest 🔥"
+            value={stats.highInterest}
+            icon={<Flame className="w-4 h-4 text-red-500" />}
+            accent="bg-red-500/10"
+            testId="stat-high-interest"
+            isLoading={isLoading}
+          />
+        </div>
+      </div>
 
       <main className="flex-1 overflow-x-auto overflow-y-hidden">
         <div className="flex gap-3 p-4 h-full min-w-max">

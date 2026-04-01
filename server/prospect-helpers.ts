@@ -53,3 +53,17 @@ export function validateProspect(data: Record<string, unknown>): { valid: boolea
 export function isTerminalStatus(status: string): boolean {
   return status === "Rejected" || status === "Withdrawn" || status === "Offer";
 }
+
+export function computeStats(prospects: Array<{ status: string; interestLevel: string }>): {
+  total: number;
+  active: number;
+  advanced: number;
+  highInterest: number;
+} {
+  return {
+    total: prospects.length,
+    active: prospects.filter((p) => !["Rejected", "Withdrawn"].includes(p.status)).length,
+    advanced: prospects.filter((p) => ["Interviewing", "Offer"].includes(p.status)).length,
+    highInterest: prospects.filter((p) => p.interestLevel === "High").length,
+  };
+}
